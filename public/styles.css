@@ -3129,9 +3129,9 @@ td span {
 
   .login-logo {
     position: absolute;
-    top: 24%;
+    top: 27%;
     left: 50%;
-    width: clamp(520px, 38vw, 760px);
+    width: clamp(560px, 41vw, 820px);
     transform: translate(-50%, -50%);
   }
 
