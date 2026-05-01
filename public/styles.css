@@ -3004,7 +3004,7 @@ td span {
   }
 }
 
-@media (max-width: 760px) {
+@media (max-width: 900px) {
   .modern-admin-app {
     grid-template-columns: 1fr;
   }
@@ -3629,7 +3629,7 @@ td span {
   }
 }
 
-@media (max-width: 760px) {
+@media (max-width: 900px) {
   .modern-admin-app .admin-sidebar {
     grid-template-columns: minmax(0, 1fr) auto;
     grid-template-areas:
