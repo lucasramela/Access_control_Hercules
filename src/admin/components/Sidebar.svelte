@@ -46,5 +46,5 @@
     <LogOut size={18} />
     <span>Cerrar sesion</span>
   </button>
-  <p class="sidebar-credit">© 2026 · Creado por Lucas Ramela</p>
+  <p class="sidebar-credit">(c) 2026 - Creado por Lucas Ramela</p>
 </aside>

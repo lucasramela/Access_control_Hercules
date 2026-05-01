@@ -3527,3 +3527,142 @@ td span {
     padding: 14px;
   }
 }
+
+/* Final responsive pass for the admin sidebar */
+@media (max-width: 1180px) {
+  .modern-admin-app {
+    display: block;
+    min-height: 100vh;
+    grid-template-columns: 1fr;
+  }
+
+  .modern-admin-app .admin-sidebar {
+    position: sticky;
+    top: 0;
+    z-index: 30;
+    width: 100%;
+    height: auto;
+    min-height: 0;
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 10px;
+    border-right: 0;
+    border-bottom: 1px solid #e5e7eb;
+    border-radius: 0;
+    padding: 8px 10px;
+    background: #fffdf8;
+    box-shadow: 0 12px 28px rgba(15, 23, 42, 0.08);
+  }
+
+  .modern-admin-app .sidebar-logo {
+    min-width: 0;
+    border-bottom: 0;
+    padding: 0;
+  }
+
+  .modern-admin-app .sidebar-logo img {
+    width: clamp(132px, 18vw, 196px);
+    max-height: 58px;
+    object-fit: contain;
+  }
+
+  .modern-sidebar-nav {
+    min-width: 0;
+    display: flex;
+    gap: 8px;
+    padding: 0;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    scrollbar-width: thin;
+  }
+
+  .modern-sidebar-nav .tab-button {
+    flex: 0 0 auto;
+    width: auto;
+    min-width: max-content;
+    min-height: 42px;
+    border-radius: 10px;
+    padding: 0 12px;
+    white-space: nowrap;
+  }
+
+  .modern-sidebar-nav .tab-button:hover,
+  .modern-sidebar-nav .tab-button.active {
+    box-shadow: inset 0 -3px 0 var(--brick);
+  }
+
+  .modern-sidebar-nav .nav-icon {
+    width: 28px;
+    height: 28px;
+    margin-right: 7px;
+  }
+
+  .modern-logout {
+    width: auto;
+    min-height: 42px;
+    justify-content: center;
+    margin: 0;
+    padding: 0 14px;
+    white-space: nowrap;
+  }
+
+  .sidebar-credit {
+    display: none;
+  }
+
+  .modern-admin-app .admin-content {
+    width: 100%;
+    padding: 0 16px 26px;
+  }
+
+  .modern-admin-app .admin-topbar {
+    position: sticky;
+    top: 59px;
+    min-height: auto;
+    padding: 10px 0;
+  }
+}
+
+@media (max-width: 760px) {
+  .modern-admin-app .admin-sidebar {
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      "logo logout"
+      "nav nav";
+    row-gap: 8px;
+  }
+
+  .modern-admin-app .sidebar-logo {
+    grid-area: logo;
+  }
+
+  .modern-admin-app .sidebar-logo img {
+    width: clamp(140px, 38vw, 184px);
+  }
+
+  .modern-sidebar-nav {
+    grid-area: nav;
+    width: 100%;
+    padding-bottom: 2px;
+  }
+
+  .modern-logout {
+    grid-area: logout;
+    min-width: 44px;
+    padding: 0 12px;
+    font-size: 0;
+  }
+
+  .modern-logout span {
+    display: none;
+  }
+
+  .modern-logout svg {
+    margin: 0;
+  }
+
+  .modern-admin-app .admin-topbar {
+    top: 106px;
+  }
+}
