@@ -163,11 +163,11 @@
       </div>
     </form>
   </section>
-  <p class="login-credit">© 2026 · Creado por Lucas Ramela</p>
+  <p class="login-credit">(c) 2026 - Creado por Lucas Ramela</p>
 
   <dialog bind:this={dialog} class="access-dialog">
     <div class="dialog-content {dialogData.status}">
-      <button class="dialog-close" type="button" aria-label="Cerrar" on:click={closeDialog}>×</button>
+      <button class="dialog-close" type="button" aria-label="Cerrar" on:click={closeDialog}>x</button>
       <div class="dialog-status-icon" aria-hidden="true">
         {#if dialogData.status === "denied"}
           <XCircle size={58} strokeWidth={2.1} />

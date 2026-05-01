@@ -101,7 +101,10 @@ input {
 
 .login-shell {
   min-height: 100vh;
-  padding: 24px;
+  min-height: 100dvh;
+  display: grid;
+  place-items: center;
+  padding: clamp(14px, 3vw, 28px);
   position: relative;
 }
 
@@ -119,6 +122,12 @@ input {
 .login-panel {
   width: 100%;
   min-height: calc(100vh - 48px);
+  min-height: calc(100dvh - 48px);
+  display: grid;
+  grid-template-rows: auto 1fr;
+  align-items: center;
+  justify-items: center;
+  gap: clamp(18px, 4vh, 42px);
   background: transparent;
   border: 0;
   border-radius: 8px;
@@ -128,22 +137,22 @@ input {
 
 .login-logo {
   display: block;
-  position: absolute;
-  top: clamp(-110px, -10vh, -56px);
-  left: 50%;
-  width: min(760px, 72vw);
+  position: relative;
+  top: auto;
+  left: auto;
+  width: clamp(280px, 54vw, 690px);
   height: auto;
-  transform: translateX(-50%);
+  transform: none;
   margin: 0;
   filter: drop-shadow(0 16px 22px rgba(0, 0, 0, 0.2));
 }
 
 .access-form {
   width: min(540px, calc(100% - 28px));
-  position: absolute;
-  left: 50%;
-  top: 58%;
-  transform: translate(-50%, -50%);
+  position: relative;
+  left: auto;
+  top: auto;
+  transform: none;
   margin: 0;
 }
 
@@ -222,7 +231,7 @@ small {
 }
 
 .dni-row input {
-  min-height: 54px;
+  min-height: clamp(58px, 8vh, 76px);
   border: 0;
   border-radius: 13px;
   font-size: clamp(22px, 3.2vw, 32px);
@@ -248,7 +257,7 @@ small {
 }
 
 .dni-row button {
-  min-height: 54px;
+  min-height: clamp(58px, 8vh, 76px);
   border-radius: 13px;
   padding-inline: 24px;
   font-size: 14px;
@@ -263,7 +272,7 @@ small {
 }
 
 .dni-row .login-icon-button {
-  width: 76px;
+  width: clamp(76px, 10vw, 96px);
   padding-inline: 0;
 }
 
@@ -1598,6 +1607,128 @@ td span {
   }
 }
 
+@media (max-width: 900px) {
+  .login-body::after {
+    background:
+      linear-gradient(180deg, rgba(9, 9, 9, 0.78), rgba(9, 9, 9, 0.52)),
+      radial-gradient(circle at 50% 12%, rgba(157, 29, 24, 0.38), transparent 34%);
+  }
+
+  .login-panel {
+    min-height: calc(100dvh - 28px);
+    gap: clamp(14px, 3vh, 28px);
+    padding: 18px;
+  }
+
+  .login-logo {
+    width: min(560px, 86vw);
+  }
+
+  .access-form {
+    width: min(620px, 100%);
+  }
+
+  .access-form label {
+    font-size: clamp(17px, 3vw, 24px);
+  }
+
+  .dni-row {
+    gap: 12px;
+    padding: 10px;
+  }
+
+  .dni-row input {
+    min-height: 72px;
+    font-size: clamp(26px, 6vw, 42px);
+  }
+
+  .dni-row .login-icon-button {
+    width: 92px;
+    min-height: 72px;
+  }
+
+  .result strong {
+    font-size: clamp(34px, 7vw, 56px);
+  }
+}
+
+@media (max-width: 680px) {
+  .login-shell {
+    padding: 12px;
+  }
+
+  .login-panel {
+    min-height: calc(100dvh - 24px);
+    grid-template-rows: auto auto 1fr;
+    justify-content: stretch;
+    padding: 14px;
+  }
+
+  .login-logo {
+    width: min(420px, 92vw);
+  }
+
+  .access-form {
+    width: 100%;
+  }
+
+  .dni-row {
+    grid-template-columns: 1fr;
+    border-radius: 16px;
+  }
+
+  .dni-row input {
+    min-height: 66px;
+  }
+
+  .dni-row .login-icon-button {
+    width: 100%;
+    min-height: 60px;
+  }
+
+  .login-credit {
+    right: 12px;
+    bottom: 10px;
+    max-width: calc(100% - 24px);
+    text-align: right;
+  }
+
+  .access-dialog {
+    width: min(94vw, 520px);
+  }
+
+  .dialog-content {
+    padding: 24px 18px;
+  }
+}
+
+@media (orientation: landscape) and (max-height: 620px) {
+  .login-panel {
+    min-height: calc(100dvh - 20px);
+    grid-template-columns: minmax(260px, 0.9fr) minmax(360px, 1fr);
+    grid-template-rows: 1fr;
+    gap: 22px;
+    padding: 10px 18px;
+  }
+
+  .login-logo {
+    width: min(42vw, 440px);
+  }
+
+  .access-form {
+    width: min(52vw, 620px);
+  }
+
+  .dni-row input,
+  .dni-row .login-icon-button {
+    min-height: 62px;
+  }
+
+  .result {
+    margin-top: 12px;
+  }
+}
+
 /* Modern SaaS admin refresh */
 .modern-admin-app {
   background: #f3f4f6;
@@ -2872,6 +3003,67 @@ td span {
     grid-template-columns: 1fr;
   }
 
+  .modern-admin-app .admin-sidebar {
+    position: static;
+    width: 100%;
+    height: auto;
+    border-radius: 0;
+  }
+
+  .modern-admin-app .sidebar-logo {
+    padding: 12px 14px;
+  }
+
+  .modern-admin-app .sidebar-logo img {
+    width: 190px;
+  }
+
+  .modern-sidebar-nav {
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    padding: 10px 12px 12px;
+    scrollbar-width: thin;
+  }
+
+  .modern-sidebar-nav .tab-button {
+    width: auto;
+    min-width: max-content;
+    min-height: 42px;
+    padding: 0 12px;
+  }
+
+  .modern-sidebar-nav .nav-icon {
+    width: 28px;
+    height: 28px;
+    margin-right: 7px;
+  }
+
+  .modern-logout {
+    margin: 0 12px 10px;
+  }
+
+  .sidebar-credit {
+    margin-bottom: 12px;
+  }
+
+  .modern-admin-app .admin-topbar {
+    min-height: auto;
+    padding: 10px 0;
+  }
+
+  .topbar-actions {
+    width: 100%;
+    justify-content: flex-start;
+    gap: 8px;
+    overflow-x: auto;
+    padding-bottom: 2px;
+  }
+
+  .topbar-date-card {
+    flex: 0 0 auto;
+  }
+
   .stat-grid,
   .modern-dashboard-charts,
   .finance-charts,
@@ -2894,5 +3086,28 @@ td span {
 
   .modern-admin-app .admin-content {
     padding: 0 14px 24px;
+  }
+
+  .section-title,
+  .finance-payments-panel .section-title,
+  .cash-movements-panel .section-title,
+  .cash-history-panel .section-title {
+    align-items: stretch;
+  }
+
+  .header-actions,
+  .backup-actions,
+  .date-filter {
+    width: 100%;
+    grid-template-columns: 1fr;
+  }
+
+  .backup-panel {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .plans-grid-balanced {
+    grid-template-columns: 1fr;
   }
 }
