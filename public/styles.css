@@ -3137,7 +3137,7 @@ td span {
 
   .access-form {
     position: absolute;
-    top: 68%;
+    top: 55%;
     left: 50%;
     width: min(540px, 36vw);
     transform: translate(-50%, -50%);
