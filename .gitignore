@@ -1,0 +1,22 @@
+node_modules/
+npm-debug.log*
+
+# Base de datos local con datos reales de clientes, pagos y caja.
+*.db
+*.sqlite
+*.sqlite3
+*_backup_*.db
+
+# Paquetes de traslado y builds temporales.
+HerculesGym_para_pendrive_*.zip
+HerculesGym_para_llevar_*.zip
+
+# Configuracion local.
+.env
+.env.*
+!.env.example
+
+# Sistema operativo / editor.
+Thumbs.db
+.DS_Store
+.vscode/

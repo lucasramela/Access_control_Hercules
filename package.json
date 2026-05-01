@@ -1,0 +1,22 @@
+{
+  "name": "gym-access-control",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Sistema inicial de control de acceso para gimnasio con SQLite y login por DNI.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev:front": "vite --host 127.0.0.1",
+    "build:front": "vite build",
+    "check": "node --check server.js && node --check public\\dist\\admin.js && node --check public\\dist\\login.js"
+  },
+  "devDependencies": {
+    "@sveltejs/vite-plugin-svelte": "^3.1.2",
+    "svelte": "^4.2.19",
+    "vite": "^5.4.11"
+  },
+  "dependencies": {
+    "apexcharts": "^5.10.6",
+    "lucide-svelte": "^1.0.1"
+  }
+}
