@@ -156,11 +156,31 @@ La pantalla de clientes esta pensada para una PC en la entrada con teclado numer
 
 El panel administrativo se abre por separado en `/admin` y cuenta con login, dashboard, CRUD de clientes, ficha digital, ultimos accesos, vencimientos, alertas, finanzas, planes y personal.
 
+## Exportacion y backups
+
+Desde el panel administrativo:
+
+- Clientes permite exportar la base de clientes a Excel.
+- Caja permite descargar un backup ZIP completo del sistema.
+- Caja permite cargar un backup para restaurar la base de datos al reiniciar el servidor.
+
+Las operaciones de exportacion, backup y restauracion estan disponibles solo para el perfil administrador.
+
 ## Alertas por WhatsApp
 
 La pestaña `Alertas` detecta socios activos cuya cuota vence en los proximos 7 dias y genera acciones para WhatsApp Web con el mensaje prearmado.
 
 Para envio automatico real sin intervencion humana hace falta configurar un proveedor externo, por ejemplo WhatsApp Business API, Twilio o Meta Cloud API.
+
+## Dominio y hosting
+
+Para publicar el sistema con dominio, ver:
+
+```text
+DEPLOY_DONWEB.md
+```
+
+El sistema requiere un hosting con soporte Node.js permanente. Para produccion usar `NODE_ENV=production`, `COOKIE_SECURE=true`, HTTPS/SSL y claves administrativas fuertes.
 
 ## Version 1.0.0 y GitHub
 

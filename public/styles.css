@@ -2416,6 +2416,97 @@ td span {
   background: var(--brick-dark);
 }
 
+.header-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.secondary-action,
+.danger-soft-action {
+  min-height: 42px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border-radius: 12px;
+  padding: 0 14px;
+  font-weight: 900;
+}
+
+.secondary-action {
+  color: var(--brick);
+  background: #fff;
+  border: 1px solid #f1d6d1;
+}
+
+.secondary-action:hover {
+  color: #fff;
+  background: var(--brick);
+}
+
+.danger-soft-action {
+  color: #b91c1c;
+  background: #fff;
+  border: 1px solid #fecaca;
+}
+
+.danger-soft-action:hover {
+  color: #fff;
+  background: #b91c1c;
+}
+
+.backup-panel {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin: 0 0 18px;
+}
+
+.backup-panel > div:first-child {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+}
+
+.backup-icon {
+  width: 46px;
+  height: 46px;
+  flex: 0 0 46px;
+  display: inline-grid;
+  place-items: center;
+  border-radius: 14px;
+  color: var(--brick);
+  background: #f8ece9;
+}
+
+.backup-panel h3 {
+  margin: 0;
+  color: #111827;
+  font-size: 17px;
+}
+
+.backup-panel p {
+  max-width: 620px;
+  margin: 4px 0 0;
+  color: #667085;
+  font-size: 13px;
+}
+
+.backup-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.hidden-file-input {
+  display: none;
+}
+
 .topbar-date-card div {
   display: grid;
   gap: 1px;

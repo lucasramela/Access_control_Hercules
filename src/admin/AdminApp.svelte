@@ -1,6 +1,6 @@
 <script>
   import { onMount } from "svelte";
-  import { ArrowRight, BadgeDollarSign, BellRing, CalendarCheck, CalendarClock, CalendarDays, Clock3, CreditCard, Edit3, FileText, MessageCircle, Tags, Trash2, UserPlus } from "lucide-svelte";
+  import { ArrowRight, BadgeDollarSign, BellRing, CalendarCheck, CalendarClock, CalendarDays, Clock3, CreditCard, DatabaseBackup, Download, Edit3, FileText, MessageCircle, ShieldCheck, Tags, Trash2, Upload, UserPlus } from "lucide-svelte";
   import Sidebar from "./components/Sidebar.svelte";
   import StatCard from "./components/StatCard.svelte";
   import DashboardChart from "./components/DashboardChart.svelte";
@@ -78,6 +78,7 @@
   let planOriginalName = "";
   let planForm = { name: "", price: "" };
   let planDeleteCandidate = null;
+  let restoreInput;
   let cashOpeningForm = { name: "Caja Principal", opening_amount: "", notes: "" };
   let cashMovementForm = { type: "Egreso", concept: "", method: "Efectivo", amount: "", notes: "" };
   let cashCloseForm = { closing_amount: "", notes: "" };
@@ -500,9 +501,54 @@
     }
   }
 
+  async function exportClientsExcel() {
+    await downloadFile("/api/clients/export");
+  }
+
+  async function downloadSystemBackup() {
+    await downloadFile("/api/system/backup");
+  }
+
+  function openRestorePicker() {
+    restoreInput?.click();
+  }
+
+  async function restoreSystemBackup(event) {
+    const file = event.currentTarget.files?.[0];
+    event.currentTarget.value = "";
+    if (!file) return;
+    if (!window.confirm("Restaurar una copia reemplazara la base al reiniciar el servidor. Antes se guardara una copia previa. ¿Continuar?")) return;
+    const response = await fetch("/api/system/restore", {
+      method: "POST",
+      headers: { "Content-Type": "application/zip" },
+      body: await file.arrayBuffer()
+    });
+    const data = await response.json();
+    showAdminDialog(data.ok ? "Backup cargado" : "Error", data.message);
+  }
+
   function showAdminDialog(title, message) {
     adminDialogData = { title, message };
     adminDialog.showModal();
+  }
+
+  async function downloadFile(url) {
+    const response = await fetch(url);
+    if (!response.ok) {
+      const data = await response.json().catch(() => ({ message: "No se pudo descargar el archivo." }));
+      showAdminDialog("Error", data.message);
+      return;
+    }
+    const blob = await response.blob();
+    const disposition = response.headers.get("Content-Disposition") || "";
+    const filename = disposition.match(/filename="([^"]+)"/)?.[1] || "descarga";
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    URL.revokeObjectURL(link.href);
+    link.remove();
   }
 
   function filterRows(rows, query, textBuilder) {
@@ -770,10 +816,13 @@
         <section class="tab-panel active modern-page">
           <div class="section-title">
             <h2>Clientes</h2>
-            <button type="button" class="client-create-action" on:click={newClient} aria-label="Nuevo cliente" title="Nuevo cliente">
-              <UserPlus size={19} strokeWidth={2.5} />
-              <span>Agregar cliente</span>
-            </button>
+            <div class="header-actions">
+              {#if canManageAdvanced}<button type="button" class="secondary-action" on:click={exportClientsExcel}><Download size={18} strokeWidth={2.4} /> Exportar Excel</button>{/if}
+              <button type="button" class="client-create-action" on:click={newClient} aria-label="Nuevo cliente" title="Nuevo cliente">
+                <UserPlus size={19} strokeWidth={2.5} />
+                <span>Agregar cliente</span>
+              </button>
+            </div>
           </div>
           <div class="search-bar"><input bind:value={clientSearch} on:input={() => clientPage = 1} type="search" placeholder="Buscar por cliente, DNI, plan o estado" /></div>
           <div class="modern-table-wrap">
@@ -882,6 +931,22 @@
       {#if activeTab === "box"}
         <section class="tab-panel active modern-page">
           <div class="section-title"><div><h2>Caja</h2><p>Apertura, ajustes, egresos y movimientos diarios.</p></div></div>
+          {#if canManageAdvanced}
+            <article class="modern-panel backup-panel">
+              <div>
+                <span class="backup-icon"><ShieldCheck size={22} strokeWidth={2.3} /></span>
+                <div>
+                  <h3>Copias de seguridad</h3>
+                  <p>Descarga un ZIP con el sistema y la base actual. Para restaurar, sube ese ZIP y reinicia el servidor.</p>
+                </div>
+              </div>
+              <div class="backup-actions">
+                <button type="button" class="secondary-action" on:click={downloadSystemBackup}><DatabaseBackup size={18} strokeWidth={2.4} /> Descargar backup</button>
+                <button type="button" class="danger-soft-action" on:click={openRestorePicker}><Upload size={18} strokeWidth={2.4} /> Restaurar backup</button>
+                <input bind:this={restoreInput} class="hidden-file-input" type="file" accept=".zip,application/zip" on:change={restoreSystemBackup} />
+              </div>
+            </article>
+          {/if}
           <section class="stat-grid cash-status-grid">
             <article class="stat-card cash-status-card">
               <div class="stat-card-header">

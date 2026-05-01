@@ -7,6 +7,10 @@ const PORT = Number(process.env.PORT || 3000);
 const ROOT = __dirname;
 const PUBLIC_DIR = path.join(ROOT, "public");
 const DB_PATH = path.join(ROOT, "gym_access.db");
+const BACKUP_DIR = path.join(ROOT, "backups");
+const RESTORE_PENDING_PATH = path.join(ROOT, "gym_access_restore_pending.db");
+const IS_PRODUCTION = process.env.NODE_ENV === "production";
+const COOKIE_SECURE = process.env.COOKIE_SECURE === "true" || IS_PRODUCTION;
 const ADMIN_USER = process.env.ADMIN_USER || "admin";
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "admin123";
 const RECEPTION_USER = process.env.RECEPTION_USER || "recepcion";
@@ -17,6 +21,8 @@ const ADMIN_ACCOUNTS = new Map([
 ]);
 const sessions = new Map();
 const PLAN_NAMES = ["PERSONALIZADO", "MENSUAL", "SEMANAL", "DIARIO"];
+
+applyPendingRestore();
 
 const db = new DatabaseSync(DB_PATH);
 db.exec(`
@@ -271,6 +277,8 @@ const mimeTypes = {
   ".css": "text/css; charset=utf-8",
   ".js": "text/javascript; charset=utf-8",
   ".json": "application/json; charset=utf-8",
+  ".xls": "application/vnd.ms-excel",
+  ".zip": "application/zip",
   ".svg": "image/svg+xml",
   ".png": "image/png",
   ".jpg": "image/jpeg",
@@ -280,6 +288,7 @@ const mimeTypes = {
 
 const server = http.createServer(async (req, res) => {
   try {
+    applySecurityHeaders(res);
     const url = new URL(req.url, `http://${req.headers.host}`);
 
     if (req.method === "POST" && url.pathname === "/api/admin/login") {
@@ -291,14 +300,14 @@ const server = http.createServer(async (req, res) => {
 
       const token = cryptoToken();
       sessions.set(token, { user: account.user, role: account.role, permissions: account.permissions, createdAt: Date.now() });
-      res.setHeader("Set-Cookie", `gym_admin=${token}; HttpOnly; SameSite=Lax; Path=/; Max-Age=28800`);
+      res.setHeader("Set-Cookie", cookieHeader("gym_admin", token, 28800));
       return sendJson(res, 200, { ok: true, user: publicSession(sessions.get(token)) });
     }
 
     if (req.method === "POST" && url.pathname === "/api/admin/logout") {
       const token = getCookie(req, "gym_admin");
       if (token) sessions.delete(token);
-      res.setHeader("Set-Cookie", "gym_admin=; HttpOnly; SameSite=Lax; Path=/; Max-Age=0");
+      res.setHeader("Set-Cookie", cookieHeader("gym_admin", "", 0));
       return sendJson(res, 200, { ok: true });
     }
 
@@ -319,6 +328,26 @@ const server = http.createServer(async (req, res) => {
 
     if (req.method === "GET" && url.pathname === "/api/clients") {
       return sendJson(res, 200, statements.listClients.all());
+    }
+
+    if (req.method === "GET" && url.pathname === "/api/clients/export") {
+      if (!isSystemAdmin(req)) return sendJson(res, 403, { ok: false, message: "Solo administrador puede exportar clientes." });
+      return sendDownload(res, buildClientsExcel(), `clientes-hercules-${timestampForFile()}.xls`, "application/vnd.ms-excel; charset=utf-8");
+    }
+
+    if (req.method === "GET" && url.pathname === "/api/system/backup") {
+      if (!isSystemAdmin(req)) return sendJson(res, 403, { ok: false, message: "Solo administrador puede generar backups." });
+      return sendDownload(res, buildSystemBackup(), `hercules-backup-${timestampForFile()}.zip`, "application/zip");
+    }
+
+    if (req.method === "POST" && url.pathname === "/api/system/restore") {
+      if (!isSystemAdmin(req)) return sendJson(res, 403, { ok: false, message: "Solo administrador puede restaurar backups." });
+      const backup = await readBinary(req, 80 * 1024 * 1024);
+      const restoredDb = extractZipFile(backup, "gym_access.db");
+      if (!restoredDb) throw badRequest("El backup no contiene gym_access.db.");
+      if (!isLikelySqlite(restoredDb)) throw badRequest("La base incluida no parece SQLite valida.");
+      fs.writeFileSync(RESTORE_PENDING_PATH, restoredDb);
+      return sendJson(res, 200, { ok: true, message: "Backup cargado. Reinicia el servidor para aplicar la restauracion de la base de datos." });
     }
 
     if (req.method === "GET" && url.pathname.startsWith("/api/clients/")) {
@@ -911,6 +940,10 @@ function isAdmin(req) {
   return Boolean(getSession(req));
 }
 
+function isSystemAdmin(req) {
+  return getSession(req)?.role === "admin";
+}
+
 function getSession(req) {
   const token = getCookie(req, "gym_admin");
   return token ? sessions.get(token) : null;
@@ -967,9 +1000,37 @@ function readJson(req) {
   });
 }
 
+function readBinary(req, limitBytes = 20 * 1024 * 1024) {
+  return new Promise((resolve, reject) => {
+    const chunks = [];
+    let size = 0;
+    req.on("data", (chunk) => {
+      size += chunk.length;
+      if (size > limitBytes) {
+        reject(badRequest("El archivo es demasiado grande."));
+        req.destroy();
+        return;
+      }
+      chunks.push(chunk);
+    });
+    req.on("end", () => resolve(Buffer.concat(chunks)));
+    req.on("error", reject);
+  });
+}
+
 function sendJson(res, status, payload) {
   res.writeHead(status, { "Content-Type": "application/json; charset=utf-8" });
   res.end(JSON.stringify(payload));
+}
+
+function sendDownload(res, content, filename, contentType) {
+  res.writeHead(200, {
+    "Content-Type": contentType,
+    "Content-Length": content.length,
+    "Content-Disposition": `attachment; filename="${filename}"`,
+    "Cache-Control": "no-store"
+  });
+  res.end(content);
 }
 
 function serveStatic(requestPath, res) {
@@ -993,9 +1054,214 @@ function serveStatic(requestPath, res) {
     }
 
     const contentType = mimeTypes[path.extname(filePath).toLowerCase()] || "application/octet-stream";
-    res.writeHead(200, { "Content-Type": contentType });
+    res.writeHead(200, { "Content-Type": contentType, "Cache-Control": contentType.includes("text/html") ? "no-store" : "public, max-age=3600" });
     res.end(content);
   });
+}
+
+function applySecurityHeaders(res) {
+  res.setHeader("X-Content-Type-Options", "nosniff");
+  res.setHeader("X-Frame-Options", "DENY");
+  res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
+  res.setHeader("Permissions-Policy", "camera=(), microphone=(), geolocation=()");
+  res.setHeader("Content-Security-Policy", "default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self'; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'");
+  if (COOKIE_SECURE) res.setHeader("Strict-Transport-Security", "max-age=31536000; includeSubDomains");
+}
+
+function cookieHeader(name, value, maxAge) {
+  return `${name}=${value}; HttpOnly; SameSite=Strict; Path=/; Max-Age=${maxAge}${COOKIE_SECURE ? "; Secure" : ""}`;
+}
+
+function buildClientsExcel() {
+  const rows = statements.listClients.all();
+  const headers = ["Apellido", "Nombre", "DNI", "Celular", "Email", "Plan", "Cuota paga hasta", "Estado", "Prorroga", "Nota prorroga", "Activo", "Direccion", "Peso kg", "Altura cm", "Nacimiento", "Ultimo pago", "Ultimo monto"];
+  const bodyRows = rows.map((client) => [
+    client.last_name,
+    client.first_name,
+    client.dni,
+    client.phone,
+    client.email,
+    client.plan_name,
+    client.membership_paid_until,
+    membershipStatusForExport(client),
+    client.grace_until || "",
+    client.grace_note || "",
+    client.active ? "Si" : "No",
+    client.address || "",
+    client.weight_kg || "",
+    client.height_cm || "",
+    client.birth_date || "",
+    client.last_payment || "",
+    client.last_amount || ""
+  ]);
+  const html = `<!doctype html><html><head><meta charset="utf-8"></head><body><table><thead><tr>${headers.map((item) => `<th>${escapeHtml(item)}</th>`).join("")}</tr></thead><tbody>${bodyRows.map((row) => `<tr>${row.map((item) => `<td>${escapeHtml(item)}</td>`).join("")}</tr>`).join("")}</tbody></table></body></html>`;
+  return Buffer.from(html, "utf8");
+}
+
+function membershipStatusForExport(client) {
+  if (!client.active) return "Inactivo";
+  const days = Math.ceil((parseDate(client.membership_paid_until) - startOfDay(new Date())) / 86400000);
+  if (days < 0) return "Vencida";
+  if (days <= 7) return "Por vencer";
+  return "Vigente";
+}
+
+function buildSystemBackup() {
+  fs.mkdirSync(BACKUP_DIR, { recursive: true });
+  const manifest = {
+    app: "Hercules Gym",
+    version: "1.0.0",
+    created_at: new Date().toISOString(),
+    includes: ["gym_access.db", "source", "public", "package files"]
+  };
+  const entries = [
+    { name: "backup-manifest.json", data: Buffer.from(JSON.stringify(manifest, null, 2), "utf8") }
+  ];
+  for (const file of collectBackupFiles(ROOT)) {
+    entries.push({ name: toZipPath(path.relative(ROOT, file)), data: fs.readFileSync(file) });
+  }
+  return createZip(entries);
+}
+
+function collectBackupFiles(dir) {
+  const skipDirs = new Set([".git", "node_modules", "backups"]);
+  const files = [];
+  for (const item of fs.readdirSync(dir, { withFileTypes: true })) {
+    if (skipDirs.has(item.name)) continue;
+    const fullPath = path.join(dir, item.name);
+    if (fullPath === RESTORE_PENDING_PATH) continue;
+    if (item.isDirectory()) files.push(...collectBackupFiles(fullPath));
+    else if (!item.name.endsWith(".zip")) files.push(fullPath);
+  }
+  return files;
+}
+
+function createZip(entries) {
+  const fileRecords = [];
+  const centralRecords = [];
+  let offset = 0;
+  for (const entry of entries) {
+    const nameBuffer = Buffer.from(entry.name, "utf8");
+    const data = Buffer.isBuffer(entry.data) ? entry.data : Buffer.from(entry.data);
+    const crc = crc32(data);
+    const local = Buffer.alloc(30);
+    local.writeUInt32LE(0x04034b50, 0);
+    local.writeUInt16LE(20, 4);
+    local.writeUInt16LE(0x0800, 6);
+    local.writeUInt16LE(0, 8);
+    local.writeUInt16LE(0, 10);
+    local.writeUInt16LE(0, 12);
+    local.writeUInt32LE(crc, 14);
+    local.writeUInt32LE(data.length, 18);
+    local.writeUInt32LE(data.length, 22);
+    local.writeUInt16LE(nameBuffer.length, 26);
+    local.writeUInt16LE(0, 28);
+    fileRecords.push(local, nameBuffer, data);
+
+    const central = Buffer.alloc(46);
+    central.writeUInt32LE(0x02014b50, 0);
+    central.writeUInt16LE(20, 4);
+    central.writeUInt16LE(20, 6);
+    central.writeUInt16LE(0x0800, 8);
+    central.writeUInt16LE(0, 10);
+    central.writeUInt16LE(0, 12);
+    central.writeUInt16LE(0, 14);
+    central.writeUInt32LE(crc, 16);
+    central.writeUInt32LE(data.length, 20);
+    central.writeUInt32LE(data.length, 24);
+    central.writeUInt16LE(nameBuffer.length, 28);
+    central.writeUInt16LE(0, 30);
+    central.writeUInt16LE(0, 32);
+    central.writeUInt16LE(0, 34);
+    central.writeUInt16LE(0, 36);
+    central.writeUInt32LE(0, 38);
+    central.writeUInt32LE(offset, 42);
+    centralRecords.push(central, nameBuffer);
+    offset += local.length + nameBuffer.length + data.length;
+  }
+  const centralSize = centralRecords.reduce((sum, item) => sum + item.length, 0);
+  const end = Buffer.alloc(22);
+  end.writeUInt32LE(0x06054b50, 0);
+  end.writeUInt16LE(0, 4);
+  end.writeUInt16LE(0, 6);
+  end.writeUInt16LE(entries.length, 8);
+  end.writeUInt16LE(entries.length, 10);
+  end.writeUInt32LE(centralSize, 12);
+  end.writeUInt32LE(offset, 16);
+  end.writeUInt16LE(0, 20);
+  return Buffer.concat([...fileRecords, ...centralRecords, end]);
+}
+
+function extractZipFile(zipBuffer, wantedName) {
+  let offset = 0;
+  while (offset + 30 <= zipBuffer.length) {
+    const signature = zipBuffer.readUInt32LE(offset);
+    if (signature !== 0x04034b50) break;
+    const method = zipBuffer.readUInt16LE(offset + 8);
+    const compressedSize = zipBuffer.readUInt32LE(offset + 18);
+    const uncompressedSize = zipBuffer.readUInt32LE(offset + 22);
+    const nameLength = zipBuffer.readUInt16LE(offset + 26);
+    const extraLength = zipBuffer.readUInt16LE(offset + 28);
+    const name = zipBuffer.slice(offset + 30, offset + 30 + nameLength).toString("utf8");
+    const dataStart = offset + 30 + nameLength + extraLength;
+    const dataEnd = dataStart + compressedSize;
+    if (toZipPath(name) === wantedName) {
+      if (method !== 0) throw badRequest("El archivo de base dentro del ZIP usa compresion no soportada.");
+      const data = zipBuffer.slice(dataStart, dataEnd);
+      if (data.length !== uncompressedSize) throw badRequest("El backup esta incompleto.");
+      return data;
+    }
+    offset = dataEnd;
+  }
+  return null;
+}
+
+function crc32(buffer) {
+  let crc = 0xffffffff;
+  for (const byte of buffer) {
+    crc = CRC_TABLE[(crc ^ byte) & 0xff] ^ (crc >>> 8);
+  }
+  return (crc ^ 0xffffffff) >>> 0;
+}
+
+const CRC_TABLE = Array.from({ length: 256 }, (_, index) => {
+  let crc = index;
+  for (let bit = 0; bit < 8; bit += 1) {
+    crc = crc & 1 ? 0xedb88320 ^ (crc >>> 1) : crc >>> 1;
+  }
+  return crc >>> 0;
+});
+
+function applyPendingRestore() {
+  if (!fs.existsSync(RESTORE_PENDING_PATH)) return;
+  fs.mkdirSync(BACKUP_DIR, { recursive: true });
+  if (fs.existsSync(DB_PATH)) {
+    fs.copyFileSync(DB_PATH, path.join(BACKUP_DIR, `pre-restore-${timestampForFile()}.db`));
+  }
+  fs.copyFileSync(RESTORE_PENDING_PATH, DB_PATH);
+  fs.unlinkSync(RESTORE_PENDING_PATH);
+}
+
+function isLikelySqlite(buffer) {
+  return buffer.slice(0, 16).toString("utf8") === "SQLite format 3\0";
+}
+
+function toZipPath(value) {
+  return String(value || "").replace(/\\/g, "/");
+}
+
+function timestampForFile() {
+  return new Date().toISOString().replace(/[-:]/g, "").replace(/\..+$/, "").replace("T", "_");
+}
+
+function escapeHtml(value) {
+  return String(value ?? "").replace(/[&<>"']/g, (char) => ({
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    "\"": "&quot;",
+    "'": "&#39;"
+  }[char]));
 }
 
 function badRequest(message) {
