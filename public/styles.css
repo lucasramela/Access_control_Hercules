@@ -1634,6 +1634,7 @@ td span {
   }
 
   .dni-row {
+    grid-template-columns: minmax(0, 1fr) 92px;
     gap: 12px;
     padding: 10px;
   }
