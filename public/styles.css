@@ -3131,7 +3131,7 @@ td span {
     position: absolute;
     top: 24%;
     left: 50%;
-    width: clamp(380px, 24vw, 520px);
+    width: clamp(520px, 38vw, 760px);
     transform: translate(-50%, -50%);
   }
 
