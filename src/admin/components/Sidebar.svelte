@@ -7,15 +7,23 @@
     Landmark,
     LayoutDashboard,
     LogOut,
+    Menu,
     UserCog,
     Users,
-    WalletCards
+    WalletCards,
+    X
   } from "lucide-svelte";
 
   export let activeTab = "dashboard";
   export let onNavigate = () => {};
   export let onLogout = () => {};
   export let allowedTabs = [];
+  let menuOpen = false;
+
+  const navigateTo = (tab) => {
+    onNavigate(tab);
+    menuOpen = false;
+  };
 
   const items = [
     { tab: "dashboard", label: "Panel", icon: LayoutDashboard },
@@ -30,13 +38,26 @@
   ];
 </script>
 
-<aside class="admin-sidebar">
+<aside class:mobile-menu-open={menuOpen} class="admin-sidebar">
   <div class="sidebar-logo">
     <img src="/assets/hercules-logo-clean.png" alt="Hercules Gym" />
   </div>
+  <button
+    class="mobile-menu-toggle"
+    type="button"
+    aria-label={menuOpen ? "Cerrar menu" : "Abrir menu"}
+    aria-expanded={menuOpen}
+    on:click={() => (menuOpen = !menuOpen)}
+  >
+    {#if menuOpen}
+      <X size={22} strokeWidth={2.4} />
+    {:else}
+      <Menu size={22} strokeWidth={2.4} />
+    {/if}
+  </button>
   <nav class="sidebar-nav modern-sidebar-nav" aria-label="Menu administrativo">
     {#each items.filter((item) => !allowedTabs.length || allowedTabs.includes(item.tab)) as item}
-      <button class:active={activeTab === item.tab} class="tab-button" type="button" on:click={() => onNavigate(item.tab)}>
+      <button class:active={activeTab === item.tab} class="tab-button" type="button" on:click={() => navigateTo(item.tab)}>
         <span class="nav-icon"><svelte:component this={item.icon} size={19} strokeWidth={2.2} /></span>
         <span>{item.label}</span>
       </button>
