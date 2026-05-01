@@ -3157,3 +3157,373 @@ td span {
     bottom: 18px;
   }
 }
+
+/* Admin responsive hardening */
+@media (max-width: 1280px) {
+  .modern-admin-app {
+    grid-template-columns: 232px 1fr;
+  }
+
+  .modern-admin-app .sidebar-logo img {
+    width: 208px;
+  }
+
+  .modern-sidebar-nav .tab-button {
+    min-height: 44px;
+    padding: 0 10px;
+    font-size: 13px;
+  }
+
+  .modern-sidebar-nav .nav-icon {
+    width: 30px;
+    height: 30px;
+    margin-right: 8px;
+  }
+
+  .modern-admin-app .admin-content {
+    padding: 0 20px 28px;
+  }
+
+  .stat-grid {
+    grid-template-columns: repeat(2, minmax(220px, 1fr));
+  }
+
+  .modern-dashboard-charts,
+  .finance-charts {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .modern-dashboard-charts .plan-map-card,
+  .finance-charts .wide-chart {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 980px) {
+  .modern-admin-app {
+    display: block;
+    min-height: 100vh;
+  }
+
+  .modern-admin-app .admin-sidebar {
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    width: 100%;
+    height: auto;
+    border-right: 0;
+    border-bottom: 1px solid #e5e7eb;
+    border-radius: 0;
+    box-shadow: 0 12px 28px rgba(15, 23, 42, 0.08);
+  }
+
+  .modern-admin-app .sidebar-logo {
+    display: flex;
+    justify-content: center;
+    border-bottom: 0;
+    padding: 10px 14px 6px;
+  }
+
+  .modern-admin-app .sidebar-logo img {
+    width: min(210px, 52vw);
+  }
+
+  .modern-sidebar-nav {
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    padding: 8px 12px 12px;
+    scrollbar-width: thin;
+  }
+
+  .modern-sidebar-nav .tab-button {
+    flex: 0 0 auto;
+    width: auto;
+    min-width: max-content;
+    min-height: 42px;
+    border-radius: 11px;
+    padding: 0 12px;
+    white-space: nowrap;
+  }
+
+  .modern-sidebar-nav .nav-icon {
+    width: 28px;
+    height: 28px;
+    margin-right: 7px;
+  }
+
+  .modern-logout {
+    width: calc(100% - 24px);
+    min-height: 40px;
+    justify-content: center;
+    margin: 0 12px 8px;
+  }
+
+  .sidebar-credit {
+    margin: 0 12px 10px;
+    font-size: 10px;
+  }
+
+  .modern-admin-app .admin-content {
+    padding: 0 16px 24px;
+  }
+
+  .modern-admin-app .admin-topbar {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    min-height: auto;
+    padding: 10px 0;
+    background: rgba(243, 244, 246, 0.94);
+  }
+
+  .topbar-actions {
+    width: 100%;
+    justify-content: flex-start;
+    gap: 8px;
+    overflow-x: auto;
+    padding-bottom: 2px;
+  }
+
+  .topbar-date-card {
+    flex: 0 0 auto;
+    min-height: 42px;
+    padding: 0 12px;
+  }
+
+  .topbar-date-card div {
+    min-width: 112px;
+  }
+
+  .topbar-time-card div {
+    min-width: 76px;
+  }
+
+  .modern-page {
+    padding: 18px 0;
+  }
+
+  .modern-page .page-title h1 {
+    font-size: clamp(26px, 6vw, 36px);
+  }
+
+  .section-title {
+    align-items: stretch;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  .section-title > h2,
+  .section-title > div {
+    min-width: 0;
+  }
+
+  .header-actions,
+  .backup-actions {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  .backup-panel {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .date-filter {
+    width: 100%;
+    grid-template-columns: repeat(2, minmax(120px, 1fr)) auto;
+  }
+
+  .client-file-dialog,
+  .admin-dialog {
+    width: min(94vw, 720px);
+  }
+
+  .client-file-content {
+    padding: 18px;
+  }
+
+  .client-file-grid {
+    grid-template-columns: repeat(2, minmax(180px, 1fr));
+  }
+}
+
+@media (max-width: 720px) {
+  .modern-admin-app .admin-content {
+    padding: 0 12px 22px;
+  }
+
+  .modern-admin-app .sidebar-logo img {
+    width: min(184px, 58vw);
+  }
+
+  .modern-sidebar-nav {
+    padding-inline: 10px;
+  }
+
+  .modern-sidebar-nav .tab-button {
+    min-height: 40px;
+    padding: 0 10px;
+    font-size: 13px;
+  }
+
+  .modern-sidebar-nav .nav-icon {
+    width: 26px;
+    height: 26px;
+  }
+
+  .stat-grid,
+  .compact-stats,
+  .modern-dashboard-charts,
+  .finance-charts,
+  .plans-grid,
+  .plans-grid-balanced,
+  .cash-actions-grid,
+  .cash-form-grid,
+  .form-grid,
+  .initial-payment-box,
+  .client-form-actions,
+  .date-filter {
+    grid-template-columns: 1fr;
+  }
+
+  .stat-card,
+  .modern-plan-card,
+  .cash-status-card {
+    min-height: 132px;
+    border-radius: 14px;
+    padding: 16px;
+  }
+
+  .stat-card strong,
+  .modern-plan-price {
+    font-size: 28px;
+  }
+
+  .modern-panel,
+  .finance-payments-panel,
+  .cash-movements-panel,
+  .cash-history-panel {
+    border-radius: 14px;
+    padding: 14px;
+  }
+
+  .modern-table {
+    min-width: 720px;
+  }
+
+  .modern-table th {
+    padding: 12px;
+    font-size: 11px;
+  }
+
+  .modern-table td {
+    padding: 12px;
+  }
+
+  .modern-actions {
+    gap: 6px;
+  }
+
+  .ghost-action,
+  .soft-action,
+  .danger-icon-button {
+    min-height: 34px;
+    padding: 0 9px;
+  }
+
+  .client-create-action,
+  .secondary-action,
+  .danger-soft-action,
+  .primary-action,
+  .backup-actions button,
+  .date-filter button {
+    width: 100%;
+  }
+
+  .client-file-header {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .client-file-header h2 {
+    font-size: 24px;
+  }
+
+  .client-file-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .client-file-access-list article {
+    grid-template-columns: 1fr;
+    align-items: start;
+  }
+
+  .admin-dialog-content {
+    border-radius: 14px;
+    padding: 20px;
+  }
+}
+
+@media (max-width: 480px) {
+  .modern-admin-app .admin-content {
+    padding: 0 10px 18px;
+  }
+
+  .modern-page {
+    padding-top: 14px;
+  }
+
+  .modern-page .page-title {
+    margin-bottom: 16px;
+  }
+
+  .modern-page .page-title h1 {
+    font-size: 28px;
+  }
+
+  .topbar-date-card {
+    padding: 0 10px;
+  }
+
+  .topbar-date-card div {
+    min-width: 96px;
+  }
+
+  .topbar-date-card strong {
+    font-size: 12px;
+  }
+
+  .stat-grid {
+    gap: 12px;
+  }
+
+  .stat-card-header {
+    margin-bottom: 12px;
+  }
+
+  .stat-icon,
+  .modern-plan-icon {
+    width: 36px;
+    height: 36px;
+  }
+
+  .modern-table {
+    min-width: 640px;
+  }
+
+  .cash-history-table {
+    min-width: 1040px;
+  }
+
+  .client-file-dialog,
+  .admin-dialog {
+    width: calc(100vw - 18px);
+  }
+
+  .client-file-content {
+    max-height: 90vh;
+    padding: 14px;
+  }
+}
