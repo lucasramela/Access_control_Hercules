@@ -124,10 +124,11 @@ input {
   min-height: calc(100vh - 48px);
   min-height: calc(100dvh - 48px);
   display: grid;
-  grid-template-rows: auto 1fr;
+  grid-template-rows: auto auto;
+  align-content: center;
   align-items: center;
   justify-items: center;
-  gap: clamp(18px, 4vh, 42px);
+  gap: clamp(26px, 6vh, 72px);
   background: transparent;
   border: 0;
   border-radius: 8px;
@@ -140,7 +141,7 @@ input {
   position: relative;
   top: auto;
   left: auto;
-  width: clamp(280px, 54vw, 690px);
+  width: clamp(340px, 34vw, 620px);
   height: auto;
   transform: none;
   margin: 0;
