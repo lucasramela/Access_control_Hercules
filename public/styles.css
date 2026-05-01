@@ -3112,3 +3112,48 @@ td span {
     grid-template-columns: 1fr;
   }
 }
+
+@media (min-width: 901px) and (min-height: 700px) {
+  .login-shell {
+    min-height: 100vh;
+    padding: 0;
+  }
+
+  .login-panel {
+    position: relative;
+    display: block;
+    width: 100%;
+    min-height: 100vh;
+    padding: 0;
+  }
+
+  .login-logo {
+    position: absolute;
+    top: 24%;
+    left: 50%;
+    width: clamp(380px, 24vw, 520px);
+    transform: translate(-50%, -50%);
+  }
+
+  .access-form {
+    position: absolute;
+    top: 68%;
+    left: 50%;
+    width: min(540px, 36vw);
+    transform: translate(-50%, -50%);
+  }
+
+  .dni-row {
+    grid-template-columns: 1fr 96px;
+  }
+
+  .dni-row input,
+  .dni-row .login-icon-button {
+    min-height: 72px;
+  }
+
+  .login-credit {
+    right: 24px;
+    bottom: 18px;
+  }
+}
