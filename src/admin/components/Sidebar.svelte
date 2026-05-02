@@ -2,7 +2,6 @@
   import {
     BadgeDollarSign,
     BellRing,
-    CalendarCheck,
     CalendarClock,
     DatabaseBackup,
     LayoutDashboard,
@@ -29,12 +28,11 @@
     { tab: "dashboard", label: "Panel", icon: LayoutDashboard },
     { tab: "clients", label: "Clientes", icon: Users },
     { tab: "plans", label: "Planes", icon: BadgeDollarSign },
-    { tab: "events", label: "Accesos", icon: CalendarCheck },
     { tab: "expiring", label: "Vencimientos", icon: CalendarClock },
     { tab: "alerts", label: "Alertas", icon: BellRing },
     { tab: "cash", label: "Finanzas", icon: WalletCards },
-    { tab: "backup", label: "Backup", icon: DatabaseBackup },
-    { tab: "staff", label: "Personal", icon: UserCog }
+    { tab: "staff", label: "Usuarios", icon: UserCog },
+    { tab: "backup", label: "BackUp", icon: DatabaseBackup }
   ];
 </script>
 
@@ -57,7 +55,7 @@
   </button>
   <nav class="sidebar-nav modern-sidebar-nav" aria-label="Menu administrativo">
     {#each items.filter((item) => !allowedTabs.length || allowedTabs.includes(item.tab)) as item}
-      <button class:active={activeTab === item.tab} class="tab-button" type="button" on:click={() => navigateTo(item.tab)}>
+      <button class:active={activeTab === item.tab} class:backup-nav={item.tab === "backup"} class="tab-button" type="button" on:click={() => navigateTo(item.tab)}>
         <span class="nav-icon"><svelte:component this={item.icon} size={19} strokeWidth={2.2} /></span>
         <span>{item.label}</span>
       </button>

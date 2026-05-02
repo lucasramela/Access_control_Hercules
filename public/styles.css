@@ -1781,6 +1781,30 @@ td span {
   box-shadow: inset 3px 0 0 var(--brick);
 }
 
+.modern-sidebar-nav .tab-button.backup-nav {
+  color: #fff;
+  background: var(--brick);
+  box-shadow: none;
+}
+
+.modern-sidebar-nav .tab-button.backup-nav .nav-icon {
+  color: var(--brick);
+  background: #fff;
+}
+
+.modern-sidebar-nav .tab-button.backup-nav:hover,
+.modern-sidebar-nav .tab-button.backup-nav.active {
+  color: var(--brick);
+  background: #fff;
+  box-shadow: inset 3px 0 0 var(--brick);
+}
+
+.modern-sidebar-nav .tab-button.backup-nav:hover .nav-icon,
+.modern-sidebar-nav .tab-button.backup-nav.active .nav-icon {
+  color: #fff;
+  background: var(--brick);
+}
+
 .modern-sidebar-nav .nav-icon {
   width: 32px;
   height: 32px;
@@ -1978,6 +2002,45 @@ td span {
 .method-breakdown em {
   color: #111827;
   font-style: normal;
+}
+
+.plan-breakdown {
+  display: grid;
+  gap: 8px;
+  max-height: 142px;
+  margin-top: 12px;
+  padding-top: 12px;
+  overflow-y: auto;
+  border-top: 1px solid #eef2f7;
+}
+
+.plan-breakdown span {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 4px 10px;
+  color: #475467;
+  font-size: 12px;
+}
+
+.plan-breakdown b {
+  color: #111827;
+}
+
+.plan-breakdown em {
+  color: #111827;
+  font-style: normal;
+  font-weight: 900;
+}
+
+.plan-breakdown small {
+  grid-column: 1 / -1;
+  margin: 0;
+  font-size: 11px;
+}
+
+.finance-method-card,
+.finance-plan-card {
+  min-height: 226px;
 }
 
 .stat-card.success .stat-icon {

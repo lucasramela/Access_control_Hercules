@@ -125,8 +125,8 @@
   $: duplicateDniClient = findDuplicateDni();
   $: canManageAdvanced = currentUser?.role === "admin";
   $: allowedTabs = canManageAdvanced
-    ? ["dashboard", "clients", "plans", "events", "expiring", "alerts", "cash", "backup", "staff"]
-    : ["dashboard", "clients", "events", "expiring", "alerts"];
+    ? ["dashboard", "clients", "plans", "expiring", "alerts", "cash", "staff", "backup"]
+    : ["dashboard", "clients", "expiring", "alerts"];
 
   $: planLabels = (loadedReports?.planCounts || []).map((row) => row.label);
   $: planSeries = (loadedReports?.planCounts || []).map((row) => Number(row.total || 0));
@@ -140,6 +140,12 @@
   $: incomeByMethodLabels = incomeByMethodRows.map((row) => row.label);
   $: incomeByMethodSeries = incomeByMethodRows.map((row) => Number(row.total || 0));
   $: todayIncome = sumPaymentsForDate(loadedPayments, todayKey());
+  $: financeMonthLabel = monthLabelFromFilter(paymentDateFilter);
+  $: dailyMethodChart = buildDailyMethodChart(filteredPayments, paymentDateFilter);
+  $: dailyMethodCategories = dailyMethodChart.categories;
+  $: dailyMethodSeries = dailyMethodChart.series;
+  $: planPaymentRows = groupPlanPayments(filteredPayments);
+  $: totalPaidPlans = filteredPayments.length;
   $: accessStatusLabels = ["Permitidos", "Denegados"];
   $: accessStatusSeries = [
     loadedEvents.filter((event) => event.status === "granted").length,
@@ -243,9 +249,9 @@
   }
 
   function canAccessTab(tab) {
-    if (tab === "box") return false;
+    if (tab === "box" || tab === "events") return false;
     if (canManageAdvanced) return true;
-    return ["dashboard", "clients", "events", "expiring", "alerts"].includes(tab);
+    return ["dashboard", "clients", "expiring", "alerts"].includes(tab);
   }
 
   async function applyPaymentDateFilter() {
@@ -603,6 +609,62 @@
     return Number(row?.total || 0);
   }
 
+  function monthLabelFromFilter(filter) {
+    const base = filter.from ? new Date(`${filter.from}T00:00:00`) : new Date();
+    const month = base.toLocaleDateString("es-AR", { month: "long" });
+    return month.charAt(0).toUpperCase() + month.slice(1);
+  }
+
+  function daysInFilterMonth(filter) {
+    const base = filter.from ? new Date(`${filter.from}T00:00:00`) : new Date();
+    return {
+      year: base.getFullYear(),
+      monthIndex: base.getMonth(),
+      days: new Date(base.getFullYear(), base.getMonth() + 1, 0).getDate()
+    };
+  }
+
+  function buildDailyMethodChart(rows, filter) {
+    const methods = ["Efectivo", "Transferencia", "Mercado Pago"];
+    const { year, monthIndex, days } = daysInFilterMonth(filter);
+    const categories = Array.from({ length: days }, (_, index) => String(index + 1).padStart(2, "0"));
+    const totals = new Map(methods.map((method) => [method, Array(days).fill(0)]));
+    for (const row of rows) {
+      const paidAt = String(row.paid_at || "").slice(0, 10);
+      const date = paidAt ? new Date(`${paidAt}T00:00:00`) : null;
+      if (!date || date.getFullYear() !== year || date.getMonth() !== monthIndex) continue;
+      const method = methods.includes(row.method) ? row.method : "Efectivo";
+      totals.get(method)[date.getDate() - 1] += Number(row.amount || 0);
+    }
+    return {
+      categories,
+      series: methods.map((method) => ({ name: method, data: totals.get(method) }))
+    };
+  }
+
+  function groupPlanPayments(rows) {
+    const methods = ["Efectivo", "Transferencia", "Mercado Pago"];
+    const map = new Map();
+    for (const row of rows) {
+      const plan = row.plan_name || "Sin plan";
+      if (!map.has(plan)) {
+        map.set(plan, {
+          label: plan,
+          count: 0,
+          total: 0,
+          methods: Object.fromEntries(methods.map((method) => [method, { count: 0, total: 0 }]))
+        });
+      }
+      const entry = map.get(plan);
+      const method = methods.includes(row.method) ? row.method : "Efectivo";
+      entry.count += 1;
+      entry.total += Number(row.amount || 0);
+      entry.methods[method].count += 1;
+      entry.methods[method].total += Number(row.amount || 0);
+    }
+    return Array.from(map.values()).sort((a, b) => b.total - a.total);
+  }
+
   function todayKey() {
     const today = new Date();
     return `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
@@ -903,34 +965,31 @@
         </section>
       {/if}
 
-      {#if activeTab === "events"}
-        <section class="tab-panel active modern-page">
-          <div class="section-title"><h2>Ultimos accesos</h2></div>
-          <form class="filter-bar" on:submit|preventDefault={loadEvents}>
-            <label>Desde fecha<input bind:value={accessFilter.fromDate} type="date" /></label>
-            <label>Hasta fecha<input bind:value={accessFilter.toDate} type="date" /></label>
-            <button type="submit">Filtrar</button>
-          </form>
-          <div class="access-layout">
-            <section>
-              <div class="events">
-                {#each pagedEvents as event}
-                  <article class="event {event.status}"><strong>{event.status === "granted" ? "Permitido" : "Denegado"}</strong><span>{event.first_name || ""} {event.last_name || ""} DNI {event.dni}</span><small>{event.message} - {formatDateTime(event.created_at)}</small></article>
-                {:else}<p>Todavia no hay ingresos registrados para ese filtro.</p>{/each}
-              </div>
-              <div class="pagination"><button type="button" disabled={eventsPage === 1} on:click={() => eventsPage = Math.max(1, eventsPage - 1)}>Anterior</button><span>Pagina {eventsPage} de {totalEventPages}</span><button type="button" disabled={eventsPage === totalEventPages} on:click={() => eventsPage = Math.min(totalEventPages, eventsPage + 1)}>Siguiente</button></div>
-            </section>
-            <DashboardChart title="Permitidos vs Denegados" subtitle="Resultado de controles de acceso" type="donut" series={accessStatusSeries} labels={accessStatusLabels} />
-          </div>
-        </section>
-      {/if}
-
       {#if activeTab === "expiring"}
         <section class="tab-panel active modern-page">
           <div class="section-title"><h2>Vencimientos</h2></div>
           <div class="search-bar"><input bind:value={expiringSearch} on:input={() => expiringPage = 1} type="search" placeholder="Buscar por cliente, DNI, plan o estado" /></div>
           <PaymentsTable clients={pagedExpiring} onCharge={openCharge} onGrace={openGrace} onDetail={(client) => showClientFile(client.dni)} />
           <div class="pagination"><button type="button" disabled={expiringPage === 1} on:click={() => expiringPage = Math.max(1, expiringPage - 1)}>Anterior</button><span>Pagina {expiringPage} de {totalExpiringPages}</span><button type="button" disabled={expiringPage === totalExpiringPages} on:click={() => expiringPage = Math.min(totalExpiringPages, expiringPage + 1)}>Siguiente</button></div>
+          <article class="modern-panel access-in-expiring-panel">
+            <div class="section-title"><div><h2>Accesos</h2><p>Ultimos controles de ingreso vinculados a vencimientos.</p></div></div>
+            <form class="filter-bar" on:submit|preventDefault={loadEvents}>
+              <label>Desde fecha<input bind:value={accessFilter.fromDate} type="date" /></label>
+              <label>Hasta fecha<input bind:value={accessFilter.toDate} type="date" /></label>
+              <button type="submit">Filtrar</button>
+            </form>
+            <div class="access-layout">
+              <section>
+                <div class="events">
+                  {#each pagedEvents as event}
+                    <article class="event {event.status}"><strong>{event.status === "granted" ? "Permitido" : "Denegado"}</strong><span>{event.first_name || ""} {event.last_name || ""} DNI {event.dni}</span><small>{event.message} - {formatDateTime(event.created_at)}</small></article>
+                  {:else}<p>Todavia no hay ingresos registrados para ese filtro.</p>{/each}
+                </div>
+                <div class="pagination"><button type="button" disabled={eventsPage === 1} on:click={() => eventsPage = Math.max(1, eventsPage - 1)}>Anterior</button><span>Pagina {eventsPage} de {totalEventPages}</span><button type="button" disabled={eventsPage === totalEventPages} on:click={() => eventsPage = Math.min(totalEventPages, eventsPage + 1)}>Siguiente</button></div>
+              </section>
+              <DashboardChart title="Permitidos vs Denegados" subtitle="Resultado de controles de acceso" type="donut" series={accessStatusSeries} labels={accessStatusLabels} />
+            </div>
+          </article>
         </section>
       {/if}
 
@@ -1087,58 +1146,44 @@
         <section class="tab-panel active modern-page">
           <div class="section-title"><h2>Finanzas</h2></div>
           <div class="stat-grid compact-stats">
-            <StatCard title="Ingresos" value={`$ ${formatMoney(loadedReports?.totals?.income)}`} helper="Ingresos mensuales del periodo" icon="trending" variant="success" />
-            <StatCard title="Ingresos del dia" value={`$ ${formatMoney(todayIncome)}`} helper="Cobros registrados hoy" icon="clock" variant="warning" />
-            <article class="stat-card neutral finance-method-card">
+            <article class="stat-card success finance-method-card">
               <div class="stat-card-header">
                 <span class="stat-icon"><BadgeDollarSign size={21} strokeWidth={2.2} /></span>
-                <span class="stat-title">Ganancia</span>
+                <span class="stat-title">Ingresos totales de {financeMonthLabel}</span>
               </div>
-              <strong>$ {formatMoney(loadedReports?.totals?.profit)}</strong>
-              <small>Ingreso menos egreso</small>
+              <strong>$ {formatMoney(loadedReports?.totals?.income)}</strong>
+              <small>Ingresos mensuales del periodo</small>
               <div class="method-breakdown" aria-label="Ingresos por metodo de pago">
                 <span><b>Efectivo</b><em>$ {formatMoney(methodIncome("Efectivo"))}</em></span>
                 <span><b>Transferencia</b><em>$ {formatMoney(methodIncome("Transferencia"))}</em></span>
                 <span><b>Mercado Pago</b><em>$ {formatMoney(methodIncome("Mercado Pago"))}</em></span>
               </div>
             </article>
+            <StatCard title="Ingresos del dia" value={`$ ${formatMoney(todayIncome)}`} helper="Cobros registrados hoy" icon="clock" variant="warning" />
+            <article class="stat-card neutral finance-plan-card">
+              <div class="stat-card-header">
+                <span class="stat-icon"><Tags size={21} strokeWidth={2.2} /></span>
+                <span class="stat-title">Total de planes</span>
+              </div>
+              <strong>{totalPaidPlans}</strong>
+              <small>Planes pagados en {financeMonthLabel}</small>
+              <div class="plan-breakdown" aria-label="Planes pagados por metodo">
+                {#each planPaymentRows as plan}
+                  <span>
+                    <b>{plan.label} · {plan.count}</b>
+                    <em>$ {formatMoney(plan.total)}</em>
+                    <small>
+                      Ef. {plan.methods.Efectivo.count} / $ {formatMoney(plan.methods.Efectivo.total)}
+                      | Transf. {plan.methods.Transferencia.count} / $ {formatMoney(plan.methods.Transferencia.total)}
+                      | MP {plan.methods["Mercado Pago"].count} / $ {formatMoney(plan.methods["Mercado Pago"].total)}
+                    </small>
+                  </span>
+                {:else}
+                  <span><b>Sin pagos</b><em>$ 0</em><small>No hay planes pagados en el periodo.</small></span>
+                {/each}
+              </div>
+            </article>
           </div>
-          <div class="finance-charts">
-            <DashboardChart title="Ingresos por planes" type="donut" series={incomeByPlanSeries} labels={incomeByPlanLabels} />
-            <DashboardChart title="Ingresos por metodo de pago" type="donut" series={incomeByMethodSeries} labels={incomeByMethodLabels} />
-            <div class="wide-chart"><DashboardChart title="Pagos diarios filtrados" type="area" series={dailySeries} categories={dailyCategories} height={330} /></div>
-          </div>
-          <article class="modern-panel finance-payments-panel">
-            <div class="section-title">
-              <div><h2>Pagos diarios del mes</h2><p>Listado de cobros con buscador integrado.</p></div>
-              <form class="date-filter" on:submit|preventDefault={applyPaymentDateFilter}>
-                <label>Desde<input bind:value={paymentDateFilter.from} type="date" /></label>
-                <label>Hasta<input bind:value={paymentDateFilter.to} type="date" /></label>
-                <button type="submit">Filtrar</button>
-              </form>
-            </div>
-            <div class="embedded-search"><input bind:value={paymentSearch} on:input={() => paymentPage = 1} type="search" placeholder="Buscar pago, cliente, plan o metodo" /></div>
-            <div class="modern-table-wrap">
-              {#if pagedPayments.length}
-                <table class="modern-table">
-                  <thead><tr><th>Fecha</th><th>Cliente</th><th>Plan</th><th>Concepto</th><th>Metodo</th><th>Monto</th></tr></thead>
-                  <tbody>
-                    {#each pagedPayments as item}
-                      <tr>
-                        <td>{formatDateTime(item.paid_at)}</td>
-                        <td><strong>{item.last_name || ""}, {item.first_name || ""}</strong><br><span>DNI {item.dni || "-"}</span></td>
-                        <td>{item.plan_name || "Sin plan"}</td>
-                        <td>{item.concept}{#if item.notes}<br><span>{item.notes}</span>{/if}</td>
-                        <td>{item.method}</td>
-                        <td>$ {formatMoney(item.amount)}</td>
-                      </tr>
-                    {/each}
-                  </tbody>
-                </table>
-                <div class="pagination"><button type="button" disabled={paymentPage === 1} on:click={() => paymentPage = Math.max(1, paymentPage - 1)}>Anterior</button><span>Pagina {paymentPage} de {totalPaymentPages}</span><button type="button" disabled={paymentPage === totalPaymentPages} on:click={() => paymentPage = Math.min(totalPaymentPages, paymentPage + 1)}>Siguiente</button></div>
-              {:else}<p>No hay pagos para esa busqueda.</p>{/if}
-            </div>
-          </article>
           <article class="modern-panel cash-movements-panel">
             <div class="section-title">
               <div><h2>Registro de pagos</h2><p>Movimientos registrados y filtrados por fecha.</p></div>
@@ -1148,6 +1193,7 @@
                 <button type="submit">Filtrar</button>
               </form>
             </div>
+            <div class="embedded-search"><input bind:value={cashSearch} on:input={() => cashPage = 1} type="search" placeholder="Buscar pago, concepto, metodo o monto" /></div>
             <div class="modern-table-wrap cash-movements-table">
               {#if pagedCash.length}
                 <table class="modern-table">
@@ -1169,12 +1215,15 @@
               {:else}<p>No hay movimientos para ese rango de fechas.</p>{/if}
             </div>
           </article>
+          <div class="finance-charts finance-daily-method-chart">
+            <div class="wide-chart"><DashboardChart title="Recaudacion diaria por metodo" subtitle={`Todos los dias de ${financeMonthLabel}`} type="bar" series={dailyMethodSeries} categories={dailyMethodCategories} height={360} colors={["#15803d", "#9d1d18", "#111827"]} /></div>
+          </div>
         </section>
       {/if}
 
       {#if activeTab === "backup" && canManageAdvanced}
         <section class="tab-panel active modern-page">
-          <div class="section-title"><div><h2>Backup</h2><p>Copias de seguridad y restauracion del sistema.</p></div></div>
+          <div class="section-title"><div><h2>BackUp</h2><p>Copias de seguridad y restauracion del sistema.</p></div></div>
           <article class="modern-panel backup-panel">
             <div>
               <span class="backup-icon"><ShieldCheck size={22} strokeWidth={2.3} /></span>
@@ -1194,7 +1243,7 @@
 
       {#if activeTab === "staff" && canManageAdvanced}
         <section class="tab-panel active modern-page">
-          <div class="section-title"><h2>Personal</h2></div>
+          <div class="section-title"><h2>Usuarios</h2></div>
           <div class="modern-table-wrap">
             {#if pagedStaff.length}<table class="modern-table"><thead><tr><th>Nombre</th><th>Rol</th><th>Permisos</th><th>Activo</th></tr></thead><tbody>{#each pagedStaff as item}<tr><td>{item.name}</td><td>{item.role}</td><td>{item.permissions}</td><td>{item.active}</td></tr>{/each}</tbody></table><div class="pagination"><button type="button" disabled={staffPage === 1} on:click={() => staffPage = Math.max(1, staffPage - 1)}>Anterior</button><span>Pagina {staffPage} de {totalStaffPages}</span><button type="button" disabled={staffPage === totalStaffPages} on:click={() => staffPage = Math.min(totalStaffPages, staffPage + 1)}>Siguiente</button></div>{:else}<p>No hay datos cargados.</p>{/if}
           </div>
