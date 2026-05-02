@@ -1954,6 +1954,32 @@ td span {
   color: #667085;
 }
 
+.method-breakdown {
+  display: grid;
+  gap: 7px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid #eef2f7;
+}
+
+.method-breakdown span {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  color: #475467;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.method-breakdown b {
+  color: #667085;
+}
+
+.method-breakdown em {
+  color: #111827;
+  font-style: normal;
+}
+
 .stat-card.success .stat-icon {
   color: #15803d;
   background: #dcfce7;

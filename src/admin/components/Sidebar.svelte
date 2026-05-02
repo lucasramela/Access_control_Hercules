@@ -4,7 +4,7 @@
     BellRing,
     CalendarCheck,
     CalendarClock,
-    Landmark,
+    DatabaseBackup,
     LayoutDashboard,
     LogOut,
     Menu,
@@ -32,8 +32,8 @@
     { tab: "events", label: "Accesos", icon: CalendarCheck },
     { tab: "expiring", label: "Vencimientos", icon: CalendarClock },
     { tab: "alerts", label: "Alertas", icon: BellRing },
-    { tab: "box", label: "Caja", icon: Landmark },
     { tab: "cash", label: "Finanzas", icon: WalletCards },
+    { tab: "backup", label: "Backup", icon: DatabaseBackup },
     { tab: "staff", label: "Personal", icon: UserCog }
   ];
 </script>

@@ -125,8 +125,8 @@
   $: duplicateDniClient = findDuplicateDni();
   $: canManageAdvanced = currentUser?.role === "admin";
   $: allowedTabs = canManageAdvanced
-    ? ["dashboard", "clients", "plans", "events", "expiring", "alerts", "box", "cash", "staff"]
-    : ["dashboard", "clients", "events", "expiring", "alerts", "box"];
+    ? ["dashboard", "clients", "plans", "events", "expiring", "alerts", "cash", "backup", "staff"]
+    : ["dashboard", "clients", "events", "expiring", "alerts"];
 
   $: planLabels = (loadedReports?.planCounts || []).map((row) => row.label);
   $: planSeries = (loadedReports?.planCounts || []).map((row) => Number(row.total || 0));
@@ -139,6 +139,7 @@
   $: incomeByMethodRows = groupPaymentsBy(filteredPayments, "method");
   $: incomeByMethodLabels = incomeByMethodRows.map((row) => row.label);
   $: incomeByMethodSeries = incomeByMethodRows.map((row) => Number(row.total || 0));
+  $: todayIncome = sumPaymentsForDate(loadedPayments, todayKey());
   $: accessStatusLabels = ["Permitidos", "Denegados"];
   $: accessStatusSeries = [
     loadedEvents.filter((event) => event.status === "granted").length,
@@ -242,8 +243,9 @@
   }
 
   function canAccessTab(tab) {
+    if (tab === "box") return false;
     if (canManageAdvanced) return true;
-    return ["dashboard", "clients", "events", "expiring", "alerts", "box"].includes(tab);
+    return ["dashboard", "clients", "events", "expiring", "alerts"].includes(tab);
   }
 
   async function applyPaymentDateFilter() {
@@ -596,6 +598,22 @@
     return Array.from(map, ([day, total]) => ({ day, total })).sort((a, b) => a.day.localeCompare(b.day));
   }
 
+  function methodIncome(method) {
+    const row = incomeByMethodRows.find((item) => item.label.toLowerCase() === method.toLowerCase());
+    return Number(row?.total || 0);
+  }
+
+  function todayKey() {
+    const today = new Date();
+    return `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+  }
+
+  function sumPaymentsForDate(rows, day) {
+    return rows
+      .filter((row) => String(row.paid_at || "").slice(0, 10) === day)
+      .reduce((sum, row) => sum + Number(row.amount || 0), 0);
+  }
+
   function filterCashSessions(rows, filter) {
     const from = filter.from ? new Date(`${filter.from}T00:00:00`) : null;
     const to = filter.to ? new Date(`${filter.to}T23:59:59`) : null;
@@ -711,7 +729,7 @@
       <div class="admin-login-heading">
         <span class="admin-kicker">Panel administrativo</span>
         <h1>Acceso al sistema</h1>
-        <p>Gestion de clientes, caja, cuotas y operaciones diarias.</p>
+        <p>Gestion de clientes, cuotas y operaciones diarias.</p>
       </div>
       <div class="admin-login-fields">
         <label>Usuario<input bind:value={loginForm.user} autocomplete="username" required /></label>
@@ -1069,9 +1087,21 @@
         <section class="tab-panel active modern-page">
           <div class="section-title"><h2>Finanzas</h2></div>
           <div class="stat-grid compact-stats">
-            <StatCard title="Ingresos" value={`$ ${formatMoney(loadedReports?.totals?.income)}`} helper="Total cobrado" icon="trending" variant="success" />
-            <StatCard title="Egresos" value={`$ ${formatMoney(loadedReports?.totals?.expenses)}`} helper="Gastos y retiros" icon="alert" variant="warning" />
-            <StatCard title="Ganancia" value={`$ ${formatMoney(loadedReports?.totals?.profit)}`} helper="Ingreso menos egreso" icon="trending" variant="neutral" />
+            <StatCard title="Ingresos" value={`$ ${formatMoney(loadedReports?.totals?.income)}`} helper="Ingresos mensuales del periodo" icon="trending" variant="success" />
+            <StatCard title="Ingresos del dia" value={`$ ${formatMoney(todayIncome)}`} helper="Cobros registrados hoy" icon="clock" variant="warning" />
+            <article class="stat-card neutral finance-method-card">
+              <div class="stat-card-header">
+                <span class="stat-icon"><BadgeDollarSign size={21} strokeWidth={2.2} /></span>
+                <span class="stat-title">Ganancia</span>
+              </div>
+              <strong>$ {formatMoney(loadedReports?.totals?.profit)}</strong>
+              <small>Ingreso menos egreso</small>
+              <div class="method-breakdown" aria-label="Ingresos por metodo de pago">
+                <span><b>Efectivo</b><em>$ {formatMoney(methodIncome("Efectivo"))}</em></span>
+                <span><b>Transferencia</b><em>$ {formatMoney(methodIncome("Transferencia"))}</em></span>
+                <span><b>Mercado Pago</b><em>$ {formatMoney(methodIncome("Mercado Pago"))}</em></span>
+              </div>
+            </article>
           </div>
           <div class="finance-charts">
             <DashboardChart title="Ingresos por planes" type="donut" series={incomeByPlanSeries} labels={incomeByPlanLabels} />
@@ -1107,6 +1137,56 @@
                 </table>
                 <div class="pagination"><button type="button" disabled={paymentPage === 1} on:click={() => paymentPage = Math.max(1, paymentPage - 1)}>Anterior</button><span>Pagina {paymentPage} de {totalPaymentPages}</span><button type="button" disabled={paymentPage === totalPaymentPages} on:click={() => paymentPage = Math.min(totalPaymentPages, paymentPage + 1)}>Siguiente</button></div>
               {:else}<p>No hay pagos para esa busqueda.</p>{/if}
+            </div>
+          </article>
+          <article class="modern-panel cash-movements-panel">
+            <div class="section-title">
+              <div><h2>Registro de pagos</h2><p>Movimientos registrados y filtrados por fecha.</p></div>
+              <form class="date-filter" on:submit|preventDefault={applyCashMovementFilter}>
+                <label>Desde<input bind:value={cashMovementFilter.from} type="date" /></label>
+                <label>Hasta<input bind:value={cashMovementFilter.to} type="date" /></label>
+                <button type="submit">Filtrar</button>
+              </form>
+            </div>
+            <div class="modern-table-wrap cash-movements-table">
+              {#if pagedCash.length}
+                <table class="modern-table">
+                  <thead><tr><th>Fecha</th><th>Hora</th><th>Concepto</th><th>Tipo</th><th>Metodo de pago</th><th>Monto</th></tr></thead>
+                  <tbody>
+                    {#each pagedCash as item}
+                      <tr>
+                        <td>{formatDateTime(item.created_at).split(",")[0]}</td>
+                        <td>{formatDateTime(item.created_at).split(",")[1]?.trim() || ""}</td>
+                        <td><strong>{item.concept}</strong>{#if item.notes}<br><span>{item.notes}</span>{/if}</td>
+                        <td><StatusBadge status={item.type} tone={item.type === "Egreso" ? "danger" : item.type === "Ajuste" ? "warning" : "success"} /></td>
+                        <td>{item.method}</td>
+                        <td>$ {formatMoney(item.amount)}</td>
+                      </tr>
+                    {/each}
+                  </tbody>
+                </table>
+                <div class="pagination"><button type="button" disabled={cashPage === 1} on:click={() => cashPage = Math.max(1, cashPage - 1)}>Anterior</button><span>Pagina {cashPage} de {totalCashPages}</span><button type="button" disabled={cashPage === totalCashPages} on:click={() => cashPage = Math.min(totalCashPages, cashPage + 1)}>Siguiente</button></div>
+              {:else}<p>No hay movimientos para ese rango de fechas.</p>{/if}
+            </div>
+          </article>
+        </section>
+      {/if}
+
+      {#if activeTab === "backup" && canManageAdvanced}
+        <section class="tab-panel active modern-page">
+          <div class="section-title"><div><h2>Backup</h2><p>Copias de seguridad y restauracion del sistema.</p></div></div>
+          <article class="modern-panel backup-panel">
+            <div>
+              <span class="backup-icon"><ShieldCheck size={22} strokeWidth={2.3} /></span>
+              <div>
+                <h3>Copias de seguridad</h3>
+                <p>Descarga un ZIP con el sistema y la base actual. Para restaurar, sube ese ZIP y reinicia el servidor.</p>
+              </div>
+            </div>
+            <div class="backup-actions">
+              <button type="button" class="secondary-action" on:click={downloadSystemBackup}><DatabaseBackup size={18} strokeWidth={2.4} /> Descargar backup</button>
+              <button type="button" class="danger-soft-action" on:click={openRestorePicker}><Upload size={18} strokeWidth={2.4} /> Restaurar backup</button>
+              <input bind:this={restoreInput} class="hidden-file-input" type="file" accept=".zip,application/zip" on:change={restoreSystemBackup} />
             </div>
           </article>
         </section>
