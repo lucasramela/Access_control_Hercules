@@ -1,5 +1,5 @@
 <script>
-  import { onMount } from "svelte";
+  import { onMount, tick } from "svelte";
   import { ArrowRight, BadgeDollarSign, BellRing, CalendarCheck, CalendarClock, CalendarDays, Clock3, CreditCard, DatabaseBackup, Download, Edit3, FileText, MessageCircle, ShieldCheck, Tags, Trash2, Upload, UserPlus } from "lucide-svelte";
   import Sidebar from "./components/Sidebar.svelte";
   import StatCard from "./components/StatCard.svelte";
@@ -582,10 +582,9 @@
       message: `Estas por realizar la accion: ${action}, sobre ${clientName} (DNI ${clientForm.dni}).`,
       detail
     };
-    await tick();
-    clientEditConfirmDialog.showModal();
     return new Promise((resolve) => {
       clientEditConfirmResolve = resolve;
+      tick().then(() => clientEditConfirmDialog?.showModal());
     });
   }
 
