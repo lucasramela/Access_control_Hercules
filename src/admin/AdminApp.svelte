@@ -45,6 +45,7 @@
   let expiringSearch = "";
   let cashSearch = "";
   let paymentSearch = "";
+  let accessSearch = "";
   let cashHistoryFilter = { from: "", to: "" };
   let paymentDateFilter = currentMonthRange();
   let cashMovementFilter = currentMonthRange();
@@ -113,8 +114,9 @@
   $: pagedPayments = paginate(filteredPayments, paymentPage);
   $: totalPaymentPages = totalPages(filteredPayments);
   $: if (paymentPage > totalPaymentPages) paymentPage = totalPaymentPages;
-  $: pagedEvents = paginate(loadedEvents, eventsPage);
-  $: totalEventPages = totalPages(loadedEvents);
+  $: filteredEvents = filterRows(loadedEvents, accessSearch, eventSearchText);
+  $: pagedEvents = paginate(filteredEvents, eventsPage);
+  $: totalEventPages = totalPages(filteredEvents);
   $: if (eventsPage > totalEventPages) eventsPage = totalEventPages;
   $: pagedStaff = paginate(staff, staffPage);
   $: totalStaffPages = totalPages(staff);
@@ -144,12 +146,13 @@
   $: dailyMethodChart = buildDailyMethodChart(filteredPayments, paymentDateFilter);
   $: dailyMethodCategories = dailyMethodChart.categories;
   $: dailyMethodSeries = dailyMethodChart.series;
+  $: dailyMethodTooltipDetails = dailyMethodChart.details;
   $: planPaymentRows = groupPlanPayments(filteredPayments);
   $: totalPaidPlans = filteredPayments.length;
   $: accessStatusLabels = ["Permitidos", "Denegados"];
   $: accessStatusSeries = [
-    loadedEvents.filter((event) => event.status === "granted").length,
-    loadedEvents.filter((event) => event.status !== "granted").length
+    filteredEvents.filter((event) => event.status === "granted").length,
+    filteredEvents.filter((event) => event.status !== "granted").length
   ];
 
   onMount(() => {
@@ -293,9 +296,14 @@
       showAdminDialog("DNI no editable", "Para cambiar el DNI, elimina el cliente y cargalo nuevamente con el documento correcto.");
       return;
     }
+    const savedClientName = `${clientForm.first_name || ""} ${clientForm.last_name || ""}`.trim() || "Cliente";
+    const savedDni = clientForm.dni;
     const data = await api("/api/clients", { method: "POST", body: buildClientPayload() });
     formMessage = data.message;
-    showAdminDialog(data.ok ? "Cliente guardado" : "No se pudo guardar", data.message);
+    showAdminDialog(
+      data.ok ? "Cliente guardado" : "No se pudo guardar",
+      data.ok ? `${savedClientName} (DNI ${savedDni}) fue guardado correctamente.` : data.message
+    );
     if (data.ok) {
       resetClientForm();
       await loadDashboard();
@@ -313,6 +321,10 @@
       showAdminDialog("DNI no editable", "Para cambiar el DNI, elimina el cliente y cargalo nuevamente con el documento correcto.");
       return;
     }
+    const savedClientName = `${clientForm.first_name || ""} ${clientForm.last_name || ""}`.trim() || "Cliente";
+    const savedDni = clientForm.dni;
+    const chargedAmount = initialPaymentForm.amount;
+    const chargedMethod = initialPaymentForm.method;
     const saved = await api("/api/clients", { method: "POST", body: buildClientPayload() });
     if (!saved.ok) {
       formMessage = saved.message;
@@ -333,7 +345,12 @@
     });
 
     formMessage = charged.message;
-    showAdminDialog(charged.ok ? "Cliente guardado y cobrado" : "Cliente guardado, cobro pendiente", charged.message);
+    showAdminDialog(
+      charged.ok ? "Cliente guardado y cobrado" : "Cliente guardado, cobro pendiente",
+      charged.ok
+        ? `${savedClientName} (DNI ${savedDni}) fue guardado correctamente. Cobro registrado: $ ${formatMoney(chargedAmount)} por ${chargedMethod}.`
+        : charged.message
+    );
     if (charged.ok) {
       resetClientForm();
       await loadDashboard();
@@ -585,6 +602,15 @@
     return [item.first_name, item.last_name, item.dni, item.plan_name, item.method, item.concept, item.notes, item.amount, formatMoney(item.amount), formatDateTime(item.paid_at)].join(" ");
   }
 
+  function eventSearchText(event) {
+    return [event.first_name, event.last_name, event.dni, event.message, event.status, formatDateTime(event.created_at)].join(" ");
+  }
+
+  function paymentClientName(payment) {
+    const fullName = `${payment.first_name || ""} ${payment.last_name || ""}`.trim();
+    return fullName || `DNI ${payment.dni || "-"}`;
+  }
+
   function groupPaymentsBy(rows, key) {
     const map = new Map();
     for (const row of rows) {
@@ -629,16 +655,26 @@
     const { year, monthIndex, days } = daysInFilterMonth(filter);
     const categories = Array.from({ length: days }, (_, index) => String(index + 1).padStart(2, "0"));
     const totals = new Map(methods.map((method) => [method, Array(days).fill(0)]));
+    const details = methods.map((method) => Array.from({ length: days }, () => ({ method, payments: [] })));
     for (const row of rows) {
       const paidAt = String(row.paid_at || "").slice(0, 10);
       const date = paidAt ? new Date(`${paidAt}T00:00:00`) : null;
       if (!date || date.getFullYear() !== year || date.getMonth() !== monthIndex) continue;
       const method = methods.includes(row.method) ? row.method : "Efectivo";
-      totals.get(method)[date.getDate() - 1] += Number(row.amount || 0);
+      const methodIndex = methods.indexOf(method);
+      const dayIndex = date.getDate() - 1;
+      const amount = Number(row.amount || 0);
+      totals.get(method)[dayIndex] += amount;
+      details[methodIndex][dayIndex].payments.push({
+        client: paymentClientName(row),
+        amount,
+        dni: row.dni || ""
+      });
     }
     return {
       categories,
-      series: methods.map((method) => ({ name: method, data: totals.get(method) }))
+      series: methods.map((method) => ({ name: method, data: totals.get(method) })),
+      details
     };
   }
 
@@ -976,6 +1012,7 @@
             <form class="filter-bar" on:submit|preventDefault={loadEvents}>
               <label>Desde fecha<input bind:value={accessFilter.fromDate} type="date" /></label>
               <label>Hasta fecha<input bind:value={accessFilter.toDate} type="date" /></label>
+              <label>Nombre o apellido<input bind:value={accessSearch} type="search" placeholder="Buscar cliente" on:input={() => eventsPage = 1} /></label>
               <button type="submit">Filtrar</button>
             </form>
             <div class="access-layout">
@@ -1216,7 +1253,7 @@
             </div>
           </article>
           <div class="finance-charts finance-daily-method-chart">
-            <div class="wide-chart"><DashboardChart title="Recaudacion diaria por metodo" subtitle={`Todos los dias de ${financeMonthLabel}`} type="bar" series={dailyMethodSeries} categories={dailyMethodCategories} height={360} colors={["#15803d", "#9d1d18", "#111827"]} /></div>
+            <div class="wide-chart"><DashboardChart title="Recaudacion diaria por metodo" subtitle={`Todos los dias de ${financeMonthLabel}`} type="bar" series={dailyMethodSeries} categories={dailyMethodCategories} height={360} colors={["#15803d", "#9d1d18", "#111827"]} tooltipDetails={dailyMethodTooltipDetails} /></div>
           </div>
         </section>
       {/if}

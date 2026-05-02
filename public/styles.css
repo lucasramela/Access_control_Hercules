@@ -2038,6 +2038,54 @@ td span {
   font-size: 11px;
 }
 
+.chart-tooltip-detail {
+  min-width: 220px;
+  max-width: 320px;
+  padding: 10px 12px;
+}
+
+.chart-tooltip-detail strong,
+.chart-tooltip-detail em {
+  display: block;
+  color: #111827;
+}
+
+.chart-tooltip-detail em {
+  margin-top: 4px;
+  color: #667085;
+  font-style: normal;
+  font-weight: 800;
+}
+
+.chart-tooltip-detail ul {
+  display: grid;
+  gap: 5px;
+  max-height: 160px;
+  margin: 8px 0 0;
+  padding: 0;
+  overflow-y: auto;
+  list-style: none;
+}
+
+.chart-tooltip-detail li {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  color: #475467;
+  font-size: 12px;
+}
+
+.chart-tooltip-detail li b {
+  color: #111827;
+  font-weight: 800;
+}
+
+.chart-tooltip-detail li span {
+  color: #111827;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
 .finance-method-card,
 .finance-plan-card {
   min-height: 226px;

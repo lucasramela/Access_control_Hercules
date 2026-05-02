@@ -10,6 +10,7 @@
   export let categories = [];
   export let height = 320;
   export let colors = ["#9d1d18", "#71110f", "#d9b6ae", "#111827", "#b45309"];
+  export let tooltipDetails = [];
 
   let chart;
   let chartEl;
@@ -28,6 +29,7 @@
   });
 
   function buildOptions() {
+    const hasCustomTooltip = Array.isArray(tooltipDetails) && tooltipDetails.length > 0;
     const base = {
       chart: {
         type,
@@ -48,6 +50,27 @@
       },
       tooltip: {
         theme: "light",
+        ...(hasCustomTooltip
+          ? {
+              custom: ({ seriesIndex, dataPointIndex, w }) => {
+                const detail = tooltipDetails?.[seriesIndex]?.[dataPointIndex];
+                if (!detail) return "";
+                const method = escapeHtml(w.globals.seriesNames?.[seriesIndex] || detail.method || "");
+                const day = escapeHtml(categories?.[dataPointIndex] || "");
+                const amount = Number(w.globals.series?.[seriesIndex]?.[dataPointIndex] || 0).toLocaleString("es-AR");
+                const rows = detail.payments?.length
+                  ? detail.payments.map((payment) => `<li><b>${escapeHtml(payment.client)}</b><span>$ ${Number(payment.amount || 0).toLocaleString("es-AR")}</span></li>`).join("")
+                  : "<li><b>Sin cobros</b><span>$ 0</span></li>";
+                return `
+                  <div class="chart-tooltip-detail">
+                    <strong>${method} - Dia ${day}</strong>
+                    <em>Total: $ ${amount}</em>
+                    <ul>${rows}</ul>
+                  </div>
+                `;
+              }
+            }
+          : {}),
         y: {
           formatter: (value) => `$ ${Number(value || 0).toLocaleString("es-AR")}`
         }
@@ -116,6 +139,15 @@
           }
         : {}
     };
+  }
+
+  function escapeHtml(value) {
+    return String(value ?? "")
+      .replaceAll("&", "&amp;")
+      .replaceAll("<", "&lt;")
+      .replaceAll(">", "&gt;")
+      .replaceAll('"', "&quot;")
+      .replaceAll("'", "&#039;");
   }
 </script>
 
