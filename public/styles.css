@@ -1190,6 +1190,16 @@ td span {
   margin-bottom: 10px;
 }
 
+.confirm-action-detail {
+  margin-top: 12px;
+  border: 1px solid rgba(157, 29, 24, 0.18);
+  border-radius: 8px;
+  padding: 10px 12px;
+  color: #7f1d1d;
+  background: #fff7f6;
+  font-weight: 800;
+}
+
 .events-title {
   margin-top: 28px;
 }

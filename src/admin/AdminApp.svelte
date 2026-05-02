@@ -63,6 +63,9 @@
   const rowsPerPage = 10;
   let adminDialog;
   let adminDialogData = { title: "", message: "" };
+  let clientEditConfirmDialog;
+  let clientEditConfirmData = { title: "", action: "", message: "", detail: "" };
+  let clientEditConfirmResolve = null;
   let clientDeleteDialog;
   let clientDeleteCandidate = null;
   let clientFileDialog;
@@ -296,6 +299,13 @@
       showAdminDialog("DNI no editable", "Para cambiar el DNI, elimina el cliente y cargalo nuevamente con el documento correcto.");
       return;
     }
+    if (editingClientDni) {
+      const confirmed = await requestClientEditConfirmation({
+        action: "Guardar cliente",
+        detail: "Se guardaran los cambios realizados en la ficha del cliente."
+      });
+      if (!confirmed) return;
+    }
     const savedClientName = `${clientForm.first_name || ""} ${clientForm.last_name || ""}`.trim() || "Cliente";
     const savedDni = clientForm.dni;
     const data = await api("/api/clients", { method: "POST", body: buildClientPayload() });
@@ -320,6 +330,13 @@
     if (editingClientDni && editingClientDni !== clientForm.dni) {
       showAdminDialog("DNI no editable", "Para cambiar el DNI, elimina el cliente y cargalo nuevamente con el documento correcto.");
       return;
+    }
+    if (editingClientDni) {
+      const confirmed = await requestClientEditConfirmation({
+        action: "Guardar y cobrar cliente",
+        detail: `Se guardaran los cambios del cliente y se intentara registrar un cobro de $ ${formatMoney(initialPaymentForm.amount)} por ${initialPaymentForm.method}.`
+      });
+      if (!confirmed) return;
     }
     const savedClientName = `${clientForm.first_name || ""} ${clientForm.last_name || ""}`.trim() || "Cliente";
     const savedDni = clientForm.dni;
@@ -555,6 +572,29 @@
   function showAdminDialog(title, message) {
     adminDialogData = { title, message };
     adminDialog.showModal();
+  }
+
+  async function requestClientEditConfirmation({ action, detail }) {
+    const clientName = `${clientForm.first_name || ""} ${clientForm.last_name || ""}`.trim() || "este cliente";
+    clientEditConfirmData = {
+      title: "Confirmar accion",
+      action,
+      message: `Estas por realizar la accion: ${action}, sobre ${clientName} (DNI ${clientForm.dni}).`,
+      detail
+    };
+    await tick();
+    clientEditConfirmDialog.showModal();
+    return new Promise((resolve) => {
+      clientEditConfirmResolve = resolve;
+    });
+  }
+
+  function resolveClientEditConfirmation(value) {
+    if (clientEditConfirmResolve) {
+      clientEditConfirmResolve(value);
+      clientEditConfirmResolve = null;
+    }
+    clientEditConfirmDialog?.close();
   }
 
   async function downloadFile(url) {
@@ -1292,6 +1332,15 @@
 
 <dialog bind:this={adminDialog} class="admin-dialog">
   <div class="admin-dialog-content"><h2>{adminDialogData.title}</h2><p>{adminDialogData.message}</p><button type="button" on:click={() => adminDialog.close()}>Aceptar</button></div>
+</dialog>
+
+<dialog bind:this={clientEditConfirmDialog} class="admin-dialog" on:cancel|preventDefault={() => resolveClientEditConfirmation(false)}>
+  <form class="admin-dialog-content" on:submit|preventDefault={() => resolveClientEditConfirmation(true)}>
+    <h2>{clientEditConfirmData.title}</h2>
+    <p>{clientEditConfirmData.message}</p>
+    <p class="confirm-action-detail">{clientEditConfirmData.detail}</p>
+    <div class="dialog-actions"><button type="button" on:click={() => resolveClientEditConfirmation(false)}>Cancelar</button><button type="submit">Aceptar</button></div>
+  </form>
 </dialog>
 
 <dialog bind:this={clientDeleteDialog} class="admin-dialog">
