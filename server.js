@@ -784,7 +784,7 @@ function buildExpiringAlerts() {
   const graceAlerts = clients
     .filter((client) => client.active && client.days_remaining < 0 && client.grace_until && client.grace_days_remaining >= 0)
     .map((client) => {
-      const message = `Promesa de pago: ${client.first_name} ${client.last_name} debe cuota y prometio pagar el ${formatDisplayDate(client.grace_until)}. ${client.grace_note || ""}`.trim();
+      const message = `Promesa de pago: ${client.first_name} ${client.last_name} debe cuota y prometio pagar el ${formatDisplayDate(client.grace_until)}. Regularice su situacion en recepción. Muchas gracias. Hercules Gym`;
       return {
         client,
         title: `${client.first_name} ${client.last_name} - prorroga hasta ${formatDisplayDate(client.grace_until)}`,

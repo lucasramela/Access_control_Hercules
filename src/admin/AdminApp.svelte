@@ -161,8 +161,14 @@
   onMount(() => {
     updateTopbarClock();
     const timer = window.setInterval(updateTopbarClock, 1000);
+    const accessTimer = window.setInterval(() => {
+      if (isLoggedIn && activeTab === "expiring") loadEvents({ resetPage: false });
+    }, 5000);
     checkSession();
-    return () => window.clearInterval(timer);
+    return () => {
+      window.clearInterval(timer);
+      window.clearInterval(accessTimer);
+    };
   });
 
   async function checkSession() {
@@ -207,10 +213,10 @@
     if (!initialPaymentForm.amount) syncInitialPaymentAmount();
   }
 
-  async function loadEvents() {
+  async function loadEvents({ resetPage = true } = {}) {
     const params = new URLSearchParams(accessFilter);
     loadedEvents = await api(`/api/access/events?${params.toString()}`);
-    eventsPage = 1;
+    if (resetPage) eventsPage = 1;
   }
 
   async function loadReports() {
